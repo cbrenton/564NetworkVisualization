@@ -115,7 +115,7 @@ class CubeCanvas(MyCanvasBase):
     def InitGL(self):
         # set viewing projection
         glMatrixMode(GL_PROJECTION)
-        glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 3.0)
+        glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, 3.0)
 
         # position viewer
         glMatrixMode(GL_MODELVIEW)
