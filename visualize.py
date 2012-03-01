@@ -1,3 +1,5 @@
+#!/usr/bin/python2.7
+
 import wx
 import sys
 
@@ -92,7 +94,7 @@ class MyCanvasBase(glcanvas.GLCanvas):
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        #glOrtho(-0.5, 0.5, -0.5, 0.5, -1, 1)
+        glOrtho(-1.0, 1.0, -1.0, 1.0, 1.0, 3.0)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -126,8 +128,8 @@ class CubeCanvas(MyCanvasBase):
         glRotatef(self.x, 0.0, 1.0, 0.0)
 
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
+        #glEnable(GL_LIGHTING)
+        #glEnable(GL_LIGHT0)
 
     def OnDraw(self):
         # clear color and depth buffers
@@ -172,9 +174,7 @@ class CubeCanvas(MyCanvasBase):
         glVertex3f(-0.5, 0.5,-0.5)
         glEnd()
 
-        if self.size is None:
-            self.size = self.GetClientSize()
-        w, h = self.size
+        w = h = min(self.GetGLExtents())
         w = max(w, 1.0)
         h = max(h, 1.0)
         xScale = 180.0 / w
@@ -206,7 +206,8 @@ nb = wx.Notebook(p)
 visPage = wx.Panel(nb)
 canvas = CubeCanvas(visPage)
 visSizer = wx.BoxSizer()
-visSizer.Add(canvas, 1, wx.EXPAND)
+#visSizer.Add(canvas, 1, wx.SHAPED | wx.ALIGN_CENTER)
+visSizer.Add(canvas, 1, wx.EXPAND | wx.ALIGN_CENTER)
 visPage.SetSizer(visSizer)
 
 dataPage = PageTwo(nb)
