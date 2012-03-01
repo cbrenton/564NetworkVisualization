@@ -76,7 +76,8 @@ class MyCanvasBase(glcanvas.GLCanvas):
         elif chr(keycode) == 'Q':
             print "quitting"
             app.Exit()
-        else print chr(keycode)
+        else:
+            print chr(keycode)
         event.Skip()
 
     # GLFrame OpenGL Event Handlers
