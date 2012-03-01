@@ -1,81 +1,72 @@
-#!/usr/bin/env python
-# run as "arch -i386 python ./visualize.py" on OS X
-import sys
 import wx
+import sys
+
 from wx import glcanvas
+
+# The Python OpenGL package can be found at
+# http://PyOpenGL.sourceforge.net/
 from OpenGL.GL import *
+from OpenGL.GLUT import *
 
-class GLFrame(wx.Frame):
-    """A simple class for using OpenGL with wxPython."""
+"""
+This code is based on code from:
+        http://wxpython-users.1045709.n5.nabble.com/Resizing-GLCanvas-Panel-td2341501.html
+as well as:
+        http://wiki.wxpython.org/GLCanvas
+"""
+class MyCanvasBase(glcanvas.GLCanvas):
+    def __init__(self, parent):
+        glcanvas.GLCanvas.__init__(self, parent, -1)
+        self.init = False
+        # initial mouse position
+        self.lastx = self.x = 30
+        self.lasty = self.y = 30
+        self.size = None
+        self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnMouseDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnMouseUp)
+        self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
+        self.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
 
-    def __init__(self, parent, id, title, pos=wx.DefaultPosition,
-                 size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
-                 name='frame'):
-        #
-        # Forcing a specific style on the window.
-        #   Should this include styles passed?
-        style = wx.DEFAULT_FRAME_STYLE | wx.NO_FULL_REPAINT_ON_RESIZE
+    def OnEraseBackground(self, event):
+        pass # Do nothing, to avoid flashing on MSW.
 
-        super(GLFrame, self).__init__(parent, id, title, pos, size, style, name)
+    def OnSize(self, event):
+        minDimension = min(self.GetGLExtents())
+        if self.GetContext():
+            self.SetCurrent()
+            glViewport(0, 0, minDimension, minDimension)
+        event.Skip()
 
-        self.GLinitialized = False
-        attribList = (glcanvas.WX_GL_RGBA, # RGBA
-                      glcanvas.WX_GL_DOUBLEBUFFER, # Double Buffered
-                      glcanvas.WX_GL_DEPTH_SIZE, 24) # 24 bit
+    def OnPaint(self, event):
+        dc = wx.PaintDC(self)
+        self.SetCurrent()
+        if not self.init:
+            self.InitGL()
+            self.init = True
+        self.OnDraw()
 
-        #
-        # Create the canvas
-        self.canvas = glcanvas.GLCanvas(self, attribList=attribList)
+    def OnMouseDown(self, evt):
+        self.CaptureMouse()
+        self.x, self.y = self.lastx, self.lasty = evt.GetPosition()
 
-        #
-        # Set the event handlers.
-        self.canvas.Bind(wx.EVT_ERASE_BACKGROUND, self.processEraseBackgroundEvent)
-        self.canvas.Bind(wx.EVT_SIZE, self.processSizeEvent)
-        self.canvas.Bind(wx.EVT_PAINT, self.processPaintEvent)
-        self.canvas.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
-        self.canvas.Bind(wx.EVT_LEFT_UP, self.onClicked)
+    def OnMouseUp(self, evt):
+        self.ReleaseMouse()
+        x = evt.GetX()
+        y = evt.GetY()
+        print "left click at %d, %d" % (x, y)
 
-    #
-    # Canvas Proxy Methods
+    def OnMouseMotion(self, evt):
+        if evt.Dragging() and evt.LeftIsDown():
+            self.lastx, self.lasty = self.x, self.y
+            self.x, self.y = evt.GetPosition()
+            self.Refresh(False)
 
     def GetGLExtents(self):
         """Get the extents of the OpenGL canvas."""
-        return self.canvas.GetClientSize()
-
-    def SwapBuffers(self):
-        """Swap the OpenGL buffers."""
-        self.canvas.SwapBuffers()
-
-    #
-    # wxPython Window Handlers
-
-    def processEraseBackgroundEvent(self, event):
-        """Process the erase background event."""
-        pass # Do nothing, to avoid flashing on MSWin
-
-    def processSizeEvent(self, event):
-        """Process the resize event."""
-        if self.canvas.GetContext():
-            # Make sure the frame is shown before calling SetCurrent.
-            self.Show()
-            self.canvas.SetCurrent()
-
-            size = self.GetGLExtents()
-            self.OnReshape(size.width, size.height)
-            self.canvas.Refresh(False)
-        event.Skip()
-
-    def processPaintEvent(self, event):
-        """Process the drawing event."""
-        self.canvas.SetCurrent()
-
-        # This is a 'perfect' time to initialize OpenGL ... only if we need to
-        if not self.GLinitialized:
-            self.OnInitGL()
-            self.GLinitialized = True
-
-        self.OnDraw()
-        event.Skip()
+        return self.GetClientSize()
 
     def onKeyPress(self, event):
         keycode = event.GetKeyCode()
@@ -85,15 +76,9 @@ class GLFrame(wx.Frame):
         elif chr(keycode) == 'Q':
             print "quitting"
             app.Exit()
+        else print chr(keycode)
         event.Skip()
 
-    def onClicked(self, event):
-        x = event.GetX()
-        y = event.GetY()
-        print "left click at %d, %d" % (x, y)
-        event.Skip()
-
-    #
     # GLFrame OpenGL Event Handlers
 
     def OnInitGL(self):
@@ -106,7 +91,7 @@ class GLFrame(wx.Frame):
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(-0.5, 0.5, -0.5, 0.5, -1, 1)
+        #glOrtho(-0.5, 0.5, -0.5, 0.5, -1, 1)
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -124,10 +109,117 @@ class GLFrame(wx.Frame):
         glEnd()
 
         self.SwapBuffers()
-    
-app = wx.PySimpleApp()
-frame = GLFrame(None, -1, 'GL Window')
-frame.Show()
+
+class CubeCanvas(MyCanvasBase):
+    def InitGL(self):
+        # set viewing projection
+        glMatrixMode(GL_PROJECTION)
+        glFrustum(-0.5, 0.5, -0.5, 0.5, 1.0, 3.0)
+
+        # position viewer
+        glMatrixMode(GL_MODELVIEW)
+        glTranslatef(0.0, 0.0, -2.0)
+
+        # position object
+        glRotatef(self.y, 1.0, 0.0, 0.0)
+        glRotatef(self.x, 0.0, 1.0, 0.0)
+
+        glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+
+    def OnDraw(self):
+        # clear color and depth buffers
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        # draw six faces of a cube
+        glBegin(GL_QUADS)
+        glNormal3f( 0.0, 0.0, 1.0)
+        glVertex3f( 0.5, 0.5, 0.5)
+        glVertex3f(-0.5, 0.5, 0.5)
+        glVertex3f(-0.5,-0.5, 0.5)
+        glVertex3f( 0.5,-0.5, 0.5)
+
+        glNormal3f( 0.0, 0.0,-1.0)
+        glVertex3f(-0.5,-0.5,-0.5)
+        glVertex3f(-0.5, 0.5,-0.5)
+        glVertex3f( 0.5, 0.5,-0.5)
+        glVertex3f( 0.5,-0.5,-0.5)
+
+        glNormal3f( 0.0, 1.0, 0.0)
+        glVertex3f( 0.5, 0.5, 0.5)
+        glVertex3f( 0.5, 0.5,-0.5)
+        glVertex3f(-0.5, 0.5,-0.5)
+        glVertex3f(-0.5, 0.5, 0.5)
+
+        glNormal3f( 0.0,-1.0, 0.0)
+        glVertex3f(-0.5,-0.5,-0.5)
+        glVertex3f( 0.5,-0.5,-0.5)
+        glVertex3f( 0.5,-0.5, 0.5)
+        glVertex3f(-0.5,-0.5, 0.5)
+
+        glNormal3f( 1.0, 0.0, 0.0)
+        glVertex3f( 0.5, 0.5, 0.5)
+        glVertex3f( 0.5,-0.5, 0.5)
+        glVertex3f( 0.5,-0.5,-0.5)
+        glVertex3f( 0.5, 0.5,-0.5)
+
+        glNormal3f(-1.0, 0.0, 0.0)
+        glVertex3f(-0.5,-0.5,-0.5)
+        glVertex3f(-0.5,-0.5, 0.5)
+        glVertex3f(-0.5, 0.5, 0.5)
+        glVertex3f(-0.5, 0.5,-0.5)
+        glEnd()
+
+        if self.size is None:
+            self.size = self.GetClientSize()
+        w, h = self.size
+        w = max(w, 1.0)
+        h = max(h, 1.0)
+        xScale = 180.0 / w
+        yScale = 180.0 / h
+        glRotatef((self.y - self.lasty) * yScale, 1.0, 0.0, 0.0);
+        glRotatef((self.x - self.lastx) * xScale, 0.0, 1.0, 0.0);
+
+        self.SwapBuffers()
+
+class PageOne(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        t = wx.StaticText(self, -1, "This is a PageOne object", (20,20))
+
+class PageTwo(wx.Panel):
+    def __init__(self, parent):
+        wx.Panel.__init__(self, parent)
+        t = wx.StaticText(self, -1, "This is a PageTwo object", (40,40))
+
+app = wx.App(0)
+
+frame = wx.Frame(None, -1, size=(600,600))
+
+# Here we create a panel and a notebook on the panel
+p = wx.Panel(frame)
+nb = wx.Notebook(p)
+
+# create the page windows as children of the notebook
+visPage = wx.Panel(nb)
+canvas = CubeCanvas(visPage)
+visSizer = wx.BoxSizer()
+visSizer.Add(canvas, 1, wx.EXPAND)
+visPage.SetSizer(visSizer)
+
+dataPage = PageTwo(nb)
+
+# add the pages to the notebook with the label to show on the tab
+nb.AddPage(visPage, "Visualization")
+nb.AddPage(dataPage, "Data")
+
+# finally, put the notebook in a sizer for the panel to manage
+# the layout
+mainSizer = wx.BoxSizer()
+mainSizer.Add(nb, 1, wx.EXPAND)
+p.SetSizer(mainSizer)
+
+frame.Show(True)
 
 app.MainLoop()
-app.Destroy()
