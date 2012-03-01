@@ -84,7 +84,7 @@ class GLFrame(wx.Frame):
             print "you pressed the spacebar!"
         elif chr(keycode) == 'Q':
             print "quitting"
-            app.Destroy()
+            app.Exit()
         event.Skip()
 
     def onClicked(self, event):
