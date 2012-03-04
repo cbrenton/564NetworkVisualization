@@ -153,44 +153,55 @@ class CubeCanvas(MyCanvasBase):
 
         self.SwapBuffers()
 
-class PageOne(wx.Panel):
+class InfoPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
-        t = wx.StaticText(self, -1, "This is a PageOne object", (20,20))
+        t = wx.StaticText(self, -1, "This is an InfoPanel object", (40,40))
 
-class PageTwo(wx.Panel):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-        t = wx.StaticText(self, -1, "This is a PageTwo object", (40,40))
+class TheFrame(wx.Frame):
+    def __init__(self, parent, id, title='theframe', pos=wx.DefaultPosition,
+                 size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
+                 name='Netflow Visualization'):
+
+        # Forcing a specific style on the window.
+        # Should this include styles passed?
+        style |= wx.NO_FULL_REPAINT_ON_RESIZE
+
+        super(TheFrame, self).__init__(parent, id, title, pos, size, style, name)
+
+        # Here we create a panel and a notebook on the panel
+        p = wx.Panel(self)
+        nb = wx.Notebook(p)
+
+        # create the page windows as children of the notebook
+        visPage = wx.Panel(nb)
+        canvas = CubeCanvas(visPage)
+        visSizer = wx.BoxSizer()
+        visSizer.Add(canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
+        visPage.SetSizer(visSizer)
+
+        dataPage = InfoPanel(nb)
+
+        # add the pages to the notebook with the label to show on the tab
+        nb.AddPage(visPage, "Visualization")
+        nb.AddPage(dataPage, "Data")
+
+        # finally, put the notebook in a sizer for the panel to manage
+        # the layout
+        mainSizer = wx.BoxSizer()
+        mainSizer.Add(nb, 1, wx.EXPAND)
+        p.SetSizer(mainSizer)
+
+    def OnCloseMe(self, event):
+        self.Close(True)
+
+    def OnCloseWindow(self, event):
+        self.Destroy()
 
 app = wx.App(0)
 
-frame = wx.Frame(None, -1, size=(600,600), style = wx.RESIZE_BORDER)
-
-# Here we create a panel and a notebook on the panel
-p = wx.Panel(frame)
-nb = wx.Notebook(p)
-
-# create the page windows as children of the notebook
-visPage = wx.Panel(nb)
-canvas = CubeCanvas(visPage)
-visSizer = wx.BoxSizer()
-#visSizer.Add(canvas, 1, wx.SHAPED | wx.ALIGN_CENTER)
-visSizer.Add(canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
-visPage.SetSizer(visSizer)
-
-dataPage = PageTwo(nb)
-
-# add the pages to the notebook with the label to show on the tab
-nb.AddPage(visPage, "Visualization")
-nb.AddPage(dataPage, "Data")
-
-# finally, put the notebook in a sizer for the panel to manage
-# the layout
-mainSizer = wx.BoxSizer()
-mainSizer.Add(nb, 1, wx.EXPAND)
-p.SetSizer(mainSizer)
-
-frame.Show(True)
+frame = TheFrame(None, -1, size=(600,600), style=wx.DEFAULT_FRAME_STYLE ^
+                 wx.RESIZE_BORDER, name="The Frame")
+frame.Show()
 
 app.MainLoop()
