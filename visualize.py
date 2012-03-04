@@ -158,16 +158,15 @@ class InfoPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         t = wx.StaticText(self, -1, "This is an InfoPanel object", (40,40))
 
-class TheFrame(wx.Frame):
+class VisFrame(wx.Frame):
     def __init__(self, parent, id, title='theframe', pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
                  name='Netflow Visualization'):
 
         # Forcing a specific style on the window.
-        # Should this include styles passed?
         style |= wx.NO_FULL_REPAINT_ON_RESIZE
 
-        super(TheFrame, self).__init__(parent, id, title, pos, size, style, name)
+        super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
 
         # Here we create a panel and a notebook on the panel
         p = wx.Panel(self)
@@ -200,8 +199,8 @@ class TheFrame(wx.Frame):
 
 app = wx.App(0)
 
-frame = TheFrame(None, -1, size=(600,600), style=wx.DEFAULT_FRAME_STYLE ^
+theFrame = VisFrame(None, -1, size=(600,600), style=wx.DEFAULT_FRAME_STYLE ^
                  wx.RESIZE_BORDER, name="The Frame")
-frame.Show()
+theFrame.Show()
 
 app.MainLoop()
