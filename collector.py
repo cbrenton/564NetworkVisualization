@@ -2,6 +2,8 @@ from socket import socket as sock, AF_INET, SOCK_DGRAM
 from socket import ntohl, ntohs
 from select import select
 from struct import unpack
+from database import Database
+from nfutil import *
 import time
 
 # Configuration Parameters 
@@ -40,104 +42,6 @@ SRC_AS = 15
 DST_AS = 16
 SRC_MASK = 17
 DST_MASK = 18
-
-# Take a single byte containing TCP flags ORed together, 
-# and extract the flag names from the byte.\
-# Returns the flags separated by spaces 
-def expandTCPFlags(flagSummary):
-  flags = ["CWR", "ECE", "URG", "ACK", "PSH", "RST", "SYN", "FIN"]
-  flagsPresent = []
-  bits = bin(flagSummary)[2:].zfill(8)
-
-  for i in range(len(flags)):
-    if bits[i] == "1":
-      flagsPresent.append(flags[i])
-
-  return " ".join(flagsPresent)
-
-# 
-def getIPType(typeNum):
-  protocols = {0x00 : "IPv6 Hop-by-Hop Option",
-    0x01 : "ICMP",
-    0x02 : "IGMP",
-   	0x03 : "GGP",
-    0x04 : "IP", 
-    0x05 : "ST", 
-    0x06 : "TCP", 
-    0x07 : "CBT",
-    0x08 : "EGP",
-    0x09 : "IGP",
-    0x0A : "BBN-RCC-MON", 
-    0x0B : "NVP-II",
-    0x0C : "PUP",
-    0x0D : "ARGUS",
-    0x0E : "EMCON",
-    0x0F : "XNET",
-    0x10 : "CHAOS",
-    0x11 : "UDP",
-    0x12 : "MUX",
-    0x13 : "DCN-MEAS",
-    0x14 : "HMP",
-    0x15 : "PRM", 
-    0x16 : "XNS-IDP",
-    0x17 : "TRUNK-1",
-    0x18 : "TRUNK-2",
-    0x19 : "LEAF-1",
-    0x1A : "LEAF-2",
-    0x1B : "RDP", 
-    0x1C : "IRTP",
-    0x1D : "ISO-TP4",
-    0x1E : "NETBLT",
-    0x1F : "MFE-NSP",
-    0x20 : "MERIT-INP",
-    0x21 : "DCCP",  
-    0x22 : "3PC",
-    0x23 : "IDPR",
-    0x24 : "XTP"}
-  try:
-    protName = protocols[typeNum]
-  except KeyError:
-    protName = "Other ("+str(typeNum)+")"
-  return protName
-
-def translateWellKnownPort(portNum):
-  protocols = {21 : "FTP", 
-   22 : "SSH", 
-   23 : "Telnet",
-   25 : "SMTP",
-   37 : "Time", 
-   43 : "WhoIs", 
-   53 : "DNS", 
-   69 : "TFTP", 
-   80 : "HTTP",
-   115 : "SFTP", 
-   118 : "SQL Services",
-   119 : "NNTP",
-   123 : "NTP (Network Time Protocol)",
-   156 : "SQL Service",
-   161 : "SNMP", 
-   179 : "BGP", 
-   194 : "IRC",
-   443 : "HTTP over TLS/SSL",
-   989 : "FTP data over TLS/SSL",
-   990 : "FTP control over TLS/SSL", 
-   993 : "IMAP4 over TLS/SSL",
-   995 : "POP3 over TLS/SSL"} 
-  
-  try: 
-    protocolName = protocols[portNum]
-  except KeyError:
-    protocolName = str(portNum)
-  
-  return protocolName
-
-
-def formatIP(ipAddr):
-  oct1 = (ipAddr & 0xFF000000) >> 24
-  oct2 = (ipAddr & 0x00FF0000) >> 16
-  oct3 = (ipAddr & 0x0000FF00) >> 8
-  oct4 = (ipAddr & 0x000000FF)
-  return str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(oct4)
 
 class Collector:
   def __init__(self, db=Database(), host="", port=9996):
