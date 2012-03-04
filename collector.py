@@ -64,15 +64,13 @@ class Collector:
  
   # Check for data and gather it
   def getData(self):
-    isData = False
     while select([self.listener], [], [], POLL)[0]:
       data = self.listener.recv(DATA_READ) 
       self.buffer += data
       print "Received: \n"+repr(data)+"\nSize: "+str(len(data))
       self.pktLog.write(repr(data))
       self.pktLogBin.write(data)
-      isData = True
-    return isData
+     return self.buffer != ""
 
   # Parse the NetFlow V5 header and any associated flows
   def parseNetFlowPackets(self):
@@ -83,6 +81,7 @@ class Collector:
       self.parseNetFlowRecord(self.buffer[idx:idx+DATA_LEN])
       numFlows -= 1
       idx += DATA_LEN
+    self.buffer = self.buffer[:HDR_LEN+(numFlows * DATA_LEN)]
 
   # Header Format (24 bytes)
   # 0                         16                 32 bits
