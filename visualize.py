@@ -323,11 +323,9 @@ class InfoPanel(wx.Panel):
 class VisFrame(wx.Frame):
     def __init__(self, parent, id, title='theframe', pos=wx.DefaultPosition,
                  size=wx.DefaultSize, style=wx.DEFAULT_FRAME_STYLE,
-                 name='Netflow Visualization', app=None, filter=None):
+                 name='Netflow Visualization', app=None, filter=None, freq=500):
 
         super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
-
-        #self.Bind (wx.EVT_IDLE, self.OnIdle)
 
         self.filter = filter
 
@@ -361,14 +359,11 @@ class VisFrame(wx.Frame):
         # Set a timer for filter updates.
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
-        self.timer.Start(100)
+        self.timer.Start(freq)
 
     def OnTimer(self, event):
         self.update();
         # TODO: Make this get stuff from filter.
-
-    #def OnIdle(self, event):
-        #self.update();
 
     def update(self, graphs=None, updateNetwork=False):
         self.canvas.update(graphs, updateNetwork)
@@ -382,21 +377,6 @@ class VisFrame(wx.Frame):
 
     def OnCloseWindow(self, event):
         self.Destroy()
-
-def makeRandomGraph(size):
-    graph = []
-    for i in range(size):
-        graph.append(Graph())
-    return graph
-
-class VisualizeWindow():
-    def __init__(self):
-        app = wx.App(0)
-        myFilter = TestFilter()
-        theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
-                            app=app, filter=myFilter)
-        theFrame.Show()
-        app.MainLoop()
 
 class TestFilter():
     def __init__(self, length=4):
@@ -413,8 +393,15 @@ class TestFilter():
         else:
             return self.graphs, False
 
-def main():
-    vis = VisualizeWindow()
+def makeRandomGraph(size):
+    graph = []
+    for i in range(size):
+        graph.append(Graph())
+    return graph
 
-if __name__ == "__main__":
-    main()
+app = wx.App(0)
+myFilter = TestFilter()
+theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
+                    app=app, filter=myFilter, freq=200)
+theFrame.Show()
+app.MainLoop()
