@@ -100,18 +100,33 @@ class MyCanvasBase(glcanvas.GLCanvas):
 
 class CubeCanvas(MyCanvasBase):
     def __init__(self, parent=None):
-        self.r = 1.0
-        self.g = 0.0
-        self.b = 0.0
         MyCanvasBase.__init__(self, parent)
+
+        self.graphFile = "graph.png"
         
         self.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
 
-    def update(self):
-        self.r = random.random()
-        self.g = random.random()
-        self.b = random.random()
-        self.OnDraw()
+        self.graphs = self.makeRandomGraph(3)
+
+    def makeRandomGraph(self, size):
+        graph = []
+        for i in range(size):
+            graph.append([random.random(), random.random(), random.random()])
+        return graph
+
+    def update(self, graphs=None, updateNetwork=False):
+        if updateNetwork:
+            self.modifyImage()
+            self.reloadGraph(self.im)
+            self.OnDraw()
+        if graphs:
+            for count, graph in enumerate(graphs):
+                if graph:
+                    if count < len(self.graphs):
+                        self.graphs[count] = graph
+                    else:
+                        self.graphs.append(graph)
+            self.OnDraw()
 
     def InitGL(self):
         # Set viewing projection
@@ -123,8 +138,11 @@ class CubeCanvas(MyCanvasBase):
         # Enable depth testing. This isn't really necessary, but doesn't hurt.
         glEnable(GL_DEPTH_TEST)
 
+        # Open graph.png.
+        self.im = open(self.graphFile)
+
         # Generate texture for network graph.
-        self.graphTex = self.loadImage()
+        self.graphTex = self.loadImage(self.im)
         
         #glEnable(GL_TEXTURE_2D)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
@@ -135,18 +153,15 @@ class CubeCanvas(MyCanvasBase):
         glEnable(GL_TEXTURE_2D)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-        # Ignore glColor calls instead of modulating them with textures.
-        #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
-        #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
         
-    def loadImage(self, imageName="graph.png"):
-        im = open(imageName)
+    def loadImage(self, im):
+        print "loading image"
         try:
-            ix, iy, image = im.size[0], im.size[1], im.tostring("raw", "RGBA",
-                                                                0, -1)
+            ix, iy, image = im.size[0], im.size[1], \
+                    im.tostring("raw", "RGBA", 0, -1)
         except SystemError:
-            ix, iy, image = im.size[0], im.size[1], im.tostring("raw", "RGBX",
-                                                                0, -1)
+            ix, iy, image = im.size[0], im.size[1], \
+                    im.tostring("raw", "RGBX", 0, -1)
         ID = glGenTextures(1)
         glBindTexture(GL_TEXTURE_2D, ID)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
@@ -155,6 +170,28 @@ class CubeCanvas(MyCanvasBase):
                      GL_RGBA, GL_UNSIGNED_BYTE, image)
         return ID
 
+    def reloadGraph(self, im):
+        im = open(self.graphFile)
+        try:
+            ix, iy, image = im.size[0], im.size[1], \
+                    im.tostring("raw", "RGBA", 0, -1)
+        except SystemError:
+            ix, iy, image = im.size[0], im.size[1], \
+                    im.tostring("raw", "RGBX", 0, -1)
+        
+        # Reload network graph.
+        glBindTexture(GL_TEXTURE_2D, self.graphTex)
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
+
+        glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0,
+                     GL_RGBA, GL_UNSIGNED_BYTE, image)
+
+    # For debugging purposes only. Modifies graph.png to demonstrate that it is
+    # being reloaded.
+    def modifyImage(self):
+        self.im = self.im.rotate(1)
+        self.im.save(self.graphFile)
+
     def OnDraw(self):
         # Clear color and depth buffers.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -162,48 +199,87 @@ class CubeCanvas(MyCanvasBase):
         # Set up texture mapping.
         self.setupTexture()
 
-        # Draw top graph area.
-        self.drawTopGraph()
-
-        # Draw bottom graph area.
-        self.drawBottomGraphs()
+        self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
 
         self.SwapBuffers()
 
-    def drawTopGraph(self):
+    def drawGraphs(self, topWeight, topGap=0.0, midGap=0.0, bottomGap=0.0):
+        """Assumes that weight is a float between 0.0 and 1.0"""
+        # Draw top graph area.
+        self.drawTopGraph(topWeight, topGap)
+        # Draw bottom graph area.
+        self.drawBottomGraphs(1.0 - topGap - midGap - topWeight - bottomGap, bottomGap)
+
+    def drawTopGraph(self, weight, pad=0.0):
         glBindTexture(GL_TEXTURE_2D, self.graphTex)
         glColor3f(1.0, 1.0, 1.0)
+        range = 2.0
+        min = -1.0
+        max = 1.0
+        top = max - range * pad
+        bottom = top - range * weight
+        left = min
+        right = max
         glBegin(GL_QUADS)
-        glTexCoord2f(0.0, 1.0); glVertex2f(-1.0, 1.0)
-        glTexCoord2f(0.0, 0.0); glVertex2f(-1.0, 0.0)
-        glTexCoord2f(1.0, 0.0); glVertex2f(1.0, 0.0)
-        glTexCoord2f(1.0, 1.0); glVertex2f(1.0, 1.0)
+        glTexCoord2f(0.0, 1.0); glVertex2f(left, top)
+        glTexCoord2f(0.0, 0.0); glVertex2f(left, bottom)
+        glTexCoord2f(1.0, 0.0); glVertex2f(right, bottom)
+        glTexCoord2f(1.0, 1.0); glVertex2f(right, top)
         glEnd()
         glColor3f(1.0, 1.0, 1.0)
         glBindTexture(GL_TEXTURE_2D, -1)
 
-    def drawBottomGraphs(self):
-        glColor3f(self.r, self.g, self.b)
+    def drawBottomGraphs(self, weight, pad=0.0):
+        # Calculate graph area boundaries.
+        range = 2.0
+        min = -1.0
+        max = 1.0
+        bottom = min + range * pad
+        curTop = top = bottom + range * weight
+        graphHeight = (range * weight) / (float)(len(self.graphs))
+        curBottom = curTop - graphHeight
+        left = min
+        right = max
+        # Draw each graph in the list of graphs.
+        for graph in self.graphs:
+            self.drawSingleGraph(graph, left, right, curTop, curBottom)
+            curTop = curBottom
+            curBottom = curBottom - graphHeight
+
+    def drawSingleGraph(self, graph, left, right, top, bottom):
+        glColor3f(graph[0], graph[1], graph[2])
         glBegin(GL_QUADS)
-        glVertex2f(-1.0, -1.0)
-        glVertex2f(-1.0, 0.0)
-        glVertex2f(1.0, 0.0)
-        glVertex2f(1.0, -1.0)
+        glVertex2f(left, top)
+        glVertex2f(left, bottom)
+        glVertex2f(right, bottom)
+        glVertex2f(right, top)
         glEnd()
         glColor3f(1.0, 1.0, 1.0)
 
     def onKeyPress(self, event):
         keycode = event.GetKeyCode()
-        print keycode
+        if chr(keycode) >= 'A' and chr(keycode) <= 'Z':
+            print "key pressed: %c" % (chr(keycode))
+        else:
+            print keycode
         if keycode == wx.WXK_SPACE:
             print "you pressed the spacebar!"
         elif chr(keycode) == 'Q':
             print "quitting"
             app.Exit()
-        elif chr(keycode) == 'R':
+        elif chr(keycode) == 'W':
             self.update()
-        else:
-            print chr(keycode)
+        elif chr(keycode) == 'E':
+            self.update(self.graphs)
+        elif chr(keycode) == 'R':
+            newGraphs = self.makeRandomGraph(3)
+            self.update(newGraphs, True)
+        elif chr(keycode) == 'T':
+            newGraphs = self.makeRandomGraph(4)
+            newGraphs[1] = None
+            self.update(newGraphs, True)
+        elif chr(keycode) == 'F':
+            self.update(updateNetwork=True)
         event.Skip()
 
 class InfoPanel(wx.Panel):
