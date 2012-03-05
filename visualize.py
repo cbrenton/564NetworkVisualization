@@ -270,16 +270,19 @@ class CubeCanvas(MyCanvasBase):
         event.Skip()
 
 class Graph():
-    def __init__(self, size=20):
+    def __init__(self, size=20, data=None):
         self.size = size
         bgNum = random.random()
         self.fg = [random.random(), random.random(), random.random()]
         self.bg = [0.9, 0.9, 0.9]
-        self.data = []
-        for i in range(self.size):
-            self.data.append(random.random())
+        if data:
+            self.data = data
+        else:
+            self.data = []
+            for i in range(self.size):
+                self.data.append(random.random())
     
-    def random(self):
+    def randomize(self):
         for i in range(self.size):
             self.data[i] = (random.random())
 
@@ -336,9 +339,9 @@ class MultiGraph():
     def addGraph(self, graph):
         self.sets.append(graph)
     
-    def random(self):
+    def randomize(self):
         for graph in self.sets:
-            graph.random()
+            graph.randomize()
 
     def draw(self, left, right, top, bottom):
         # Draw the graph borders.
@@ -441,7 +444,7 @@ class TestFilter():
 
     def update(self):
         for g in self.graphs:
-            g.random()
+            g.randomize()
         if (random.random() > 0.9):
             return self.graphs, True
         else:
