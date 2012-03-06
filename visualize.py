@@ -116,7 +116,6 @@ class CubeCanvas(MyCanvasBase):
 
     def update(self, graphs=None, updateNetwork=False):
         if updateNetwork:
-            #self.modifyImage()
             self.reloadGraph(self.im)
             self.OnDraw()
         if graphs:
@@ -185,12 +184,6 @@ class CubeCanvas(MyCanvasBase):
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, image)
 
-    # For debugging purposes only. Modifies graph.png to demonstrate that it is
-    # being reloaded.
-    def modifyImage(self):
-        self.im = self.im.rotate(1)
-        self.im.save(self.graphFile)
-
     def OnDraw(self):
         # Clear color and depth buffers.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -198,6 +191,7 @@ class CubeCanvas(MyCanvasBase):
         # Set up texture mapping.
         self.setupTexture()
 
+        # Draw the graphs.
         self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
 
         self.SwapBuffers()
@@ -247,7 +241,7 @@ class CubeCanvas(MyCanvasBase):
 
     def onKeyPress(self, event):
         keycode = event.GetKeyCode()
-        if chr(keycode) >= 'A' and chr(keycode) <= 'Z':
+        if keycode >= 0 and keycode <= 256:
             print "key pressed: %c" % (chr(keycode))
         else:
             print keycode
@@ -284,6 +278,11 @@ class VisFrame(wx.Frame):
 
         super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
 
+        self.Bind(wx.EVT_SIZE, self.OnSize)
+
+        maxDim = min(size[0], size[1])
+        self.SetMinSize((400, 400))
+
         self.filter = filter
 
         # Create a panel and a notebook on the panel.
@@ -295,11 +294,20 @@ class VisFrame(wx.Frame):
         # Create the GLCanvas.
         self.canvas = CubeCanvas(visPage, app=app)
         self.canvas.InitGL()
+
+        # Add the static text to the panel.
+        text = "I DROP IT BLAAARAEREROOOAAARRRGGHHHHH"
+        self.textBox = wx.TextCtrl(visPage, -1, text, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
+        #self.textBox = wx.TextCtrl(visPage, -1, text, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.BORDER_NONE)
+        self.textBox.SetBackgroundColour("#e8e8e8")
+
         # Create the node info panel.
         nodePanel = InfoPanel(visPage)
+
         # Add a sizer to visPage to manage its children.
         visSizer = wx.BoxSizer()
         visSizer.Add(self.canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
+        visSizer.Add(self.textBox, 1, wx.EXPAND | wx.ALIGN_RIGHT)
         visPage.SetSizer(visSizer)
 
         dataPage = InfoPanel(nb)
@@ -317,14 +325,18 @@ class VisFrame(wx.Frame):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.timer.Start(freq)
+        
+    def update(self, graphs=None, updateNetwork=False):
+        self.canvas.update(graphs, updateNetwork)
+
+    def OnSize(self, event):
+        #if (event.
+        event.Skip()
 
     def OnTimer(self, event):
         # Get graph data and whether to update graph image from filter.
         newGraphs, newImage = self.filter.update()
         self.canvas.update(newGraphs, newImage)
-
-    def update(self, graphs=None, updateNetwork=False):
-        self.canvas.update(graphs, updateNetwork)
 
     def OnCloseMe(self, event):
         self.Close(True)

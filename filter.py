@@ -49,6 +49,8 @@ class TestFilter():
         else:
             return False
 
+    # For debugging purposes only. Modifies graph.png to demonstrate that it is
+    # being reloaded.
     def modifyImage(self):
         self.im = self.im.rotate(1)
         self.im.save(self.graphFile)
