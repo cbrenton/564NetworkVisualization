@@ -5,6 +5,9 @@ import sys
 import random
 import select
 
+import visgraph
+import filter
+
 from wx import glcanvas
 
 # The Python OpenGL package can be found at
@@ -113,7 +116,7 @@ class CubeCanvas(MyCanvasBase):
 
     def update(self, graphs=None, updateNetwork=False):
         if updateNetwork:
-            self.modifyImage()
+            #self.modifyImage()
             self.reloadGraph(self.im)
             self.OnDraw()
         if graphs:
@@ -269,105 +272,6 @@ class CubeCanvas(MyCanvasBase):
             self.update(updateNetwork=True)
         event.Skip()
 
-class Graph():
-    def __init__(self, size=20, data=None):
-        self.size = size
-        bgNum = random.random()
-        self.fg = [random.random(), random.random(), random.random()]
-        self.bg = [0.9, 0.9, 0.9]
-        if data:
-            self.data = data
-        else:
-            self.data = []
-            for i in range(self.size):
-                self.data.append(random.random())
-    
-    def randomize(self):
-        for i in range(self.size):
-            self.data[i] = (random.random())
-
-    def draw(self, left, right, top, bottom, filled=True):
-        if filled:
-            # Draw the graph borders.
-            glColor3f(0.0, 0.0, 0.0)
-            glBegin(GL_LINES)
-            glVertex2f(left, top)
-            glVertex2f(right, top)
-            glVertex2f(left, bottom)
-            glVertex2f(right, bottom)
-            glEnd()
-
-        # Draw the graph data (first because OpenGL draws in reverse).
-        #glColor3f(1.0, 0.0, 0.0)
-        glColor3f(self.fg[0], self.fg[1], self.fg[2])
-        if filled:
-            glBegin(GL_TRIANGLE_STRIP)
-        else:
-            glLineWidth(2)
-            glBegin(GL_LINE_STRIP)
-        for count, point in enumerate(self.data):
-            curX = left + (float)(count) * (right - left) / (float)(len(self.data) - 1)
-            curY = bottom + point * (top - bottom)
-            glVertex2f(curX, curY)
-            if filled:
-                glVertex2f(curX, bottom)
-        glEnd()
-        if not filled:
-            glLineWidth(1)
-
-        if filled:
-            # Draw the graph background.
-            glColor3f(self.bg[0], self.bg[1], self.bg[2])
-            glBegin(GL_QUADS)
-            glVertex2f(left, top)
-            glVertex2f(left, bottom)
-            glVertex2f(right, bottom)
-            glVertex2f(right, top)
-            glEnd()
-
-        glColor3f(1.0, 1.0, 1.0)
-
-class MultiGraph():
-    def __init__(self, sets=None):
-        self.sets = sets
-        bgNum = random.random()
-        self.fg = [random.random(), random.random(), random.random()]
-        self.bg = [0.9, 0.9, 0.9]
-        if not self.sets:
-            self.sets = []
-
-    def addGraph(self, graph):
-        self.sets.append(graph)
-    
-    def randomize(self):
-        for graph in self.sets:
-            graph.randomize()
-
-    def draw(self, left, right, top, bottom):
-        # Draw the graph borders.
-        glColor3f(0.0, 0.0, 0.0)
-        glBegin(GL_LINES)
-        glVertex2f(left, top)
-        glVertex2f(right, top)
-        glVertex2f(left, bottom)
-        glVertex2f(right, bottom)
-        glEnd()
-
-        # Draw the graph data (first because OpenGL draws in reverse).
-        for graph in self.sets:
-            graph.draw(left, right, top, bottom, False)
-        
-        # Draw the graph background.
-        glColor3f(self.bg[0], self.bg[1], self.bg[2])
-        glBegin(GL_QUADS)
-        glVertex2f(left, top)
-        glVertex2f(left, bottom)
-        glVertex2f(right, bottom)
-        glVertex2f(right, top)
-        glEnd()
-
-        glColor3f(1.0, 1.0, 1.0)
-    
 class InfoPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -415,15 +319,12 @@ class VisFrame(wx.Frame):
         self.timer.Start(freq)
 
     def OnTimer(self, event):
-        self.update();
-        # TODO: Make this get stuff from filter.
+        # Get graph data and whether to update graph image from filter.
+        newGraphs, newImage = self.filter.update()
+        self.canvas.update(newGraphs, newImage)
 
     def update(self, graphs=None, updateNetwork=False):
         self.canvas.update(graphs, updateNetwork)
-
-    def update(self):
-        newGraphs, newImage = self.filter.update()
-        self.canvas.update(newGraphs, newImage)
 
     def OnCloseMe(self, event):
         self.Close(True)
@@ -431,33 +332,14 @@ class VisFrame(wx.Frame):
     def OnCloseWindow(self, event):
         self.Destroy()
 
-class TestFilter():
-    def __init__(self, length=4):
-        self.length = length
-        self.graphs = []
-        for i in range(length - 1):
-            self.graphs.append(Graph())
-        multi = MultiGraph()
-        for i in range(3):
-            multi.addGraph(Graph())
-        self.graphs.append(multi)
-
-    def update(self):
-        for g in self.graphs:
-            g.randomize()
-        if (random.random() > 0.9):
-            return self.graphs, True
-        else:
-            return self.graphs, False
-
 def makeRandomGraph(size=20):
     graph = []
     for i in range(size):
-        graph.append(Graph())
+        graph.append(visgraph.Graph())
     return graph
 
 app = wx.App(0)
 theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
-                    app=app, filter=TestFilter(), freq=200)
+                    app=app, filter=filter.TestFilter(), freq=200)
 theFrame.Show()
 app.MainLoop()
