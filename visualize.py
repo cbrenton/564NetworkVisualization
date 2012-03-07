@@ -6,7 +6,7 @@ import random
 import select
 
 import visgraph
-import filter
+import testfilter
 
 from wx import glcanvas
 
@@ -372,6 +372,6 @@ def makeRandomGraph(size=20):
 app = wx.App(0)
 #theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
 theFrame = VisFrame(None, -1, size=(970, 690), name="The Frame",
-                    app=app, filter=filter.TestFilter(), freq=200)
+                    app=app, filter=testfilter.TestFilter(), freq=200)
 theFrame.Show()
 app.MainLoop()
