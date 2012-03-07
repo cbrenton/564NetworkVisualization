@@ -5,6 +5,9 @@ import sys
 import random
 import select
 
+import visgraph
+import filter
+
 from wx import glcanvas
 
 # The Python OpenGL package can be found at
@@ -29,7 +32,7 @@ class MyCanvasBase(glcanvas.GLCanvas):
         # The size of the GLCanvas is set here. Since the canvas will resize to
         # fit the window, this actually just sets the aspect ratio of the
         # canvas.
-        glcanvas.GLCanvas.__init__(self, parent, -1, size=(100, 150))
+        glcanvas.GLCanvas.__init__(self, parent, -1, size=(400, 525))
         self.init = False
         # Record initial mouse position.
         self.lastx = self.x = 30
@@ -107,13 +110,12 @@ class CubeCanvas(MyCanvasBase):
 
         self.graphFile = "graph.png"
         
-        self.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
+        app.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
 
         self.graphs = makeRandomGraph(3)
 
     def update(self, graphs=None, updateNetwork=False):
         if updateNetwork:
-            self.modifyImage()
             self.reloadGraph(self.im)
             self.OnDraw()
         if graphs:
@@ -182,12 +184,6 @@ class CubeCanvas(MyCanvasBase):
         glTexImage2D(GL_TEXTURE_2D, 0, 3, ix, iy, 0,
                      GL_RGBA, GL_UNSIGNED_BYTE, image)
 
-    # For debugging purposes only. Modifies graph.png to demonstrate that it is
-    # being reloaded.
-    def modifyImage(self):
-        self.im = self.im.rotate(1)
-        self.im.save(self.graphFile)
-
     def OnDraw(self):
         # Clear color and depth buffers.
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -195,7 +191,9 @@ class CubeCanvas(MyCanvasBase):
         # Set up texture mapping.
         self.setupTexture()
 
-        self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
+        # Draw the graphs.
+        #self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
+        self.drawGraphs(0.55, 0.0, 0.0, 0.0)
 
         self.SwapBuffers()
 
@@ -244,130 +242,19 @@ class CubeCanvas(MyCanvasBase):
 
     def onKeyPress(self, event):
         keycode = event.GetKeyCode()
-        if chr(keycode) >= 'A' and chr(keycode) <= 'Z':
+        """
+        if keycode >= 0 and keycode <= 256:
             print "key pressed: %c" % (chr(keycode))
         else:
             print keycode
         if keycode == wx.WXK_SPACE:
             print "you pressed the spacebar!"
-        elif chr(keycode) == 'Q':
+        """
+        if chr(keycode) == 'Q':
             print "quitting"
             self.app.Exit()
-        elif chr(keycode) == 'W':
-            self.update()
-        elif chr(keycode) == 'E':
-            newGraphs = makeRandomGraph(3)
-            self.update(newGraphs)
-        elif chr(keycode) == 'R':
-            newGraphs = makeRandomGraph(3)
-            self.update(newGraphs, True)
-        elif chr(keycode) == 'T':
-            newGraphs = makeRandomGraph(4)
-            newGraphs[1] = None
-            self.update(newGraphs, True)
-        elif chr(keycode) == 'F':
-            self.update(updateNetwork=True)
         event.Skip()
 
-class Graph():
-    def __init__(self, size=20, data=None):
-        self.size = size
-        bgNum = random.random()
-        self.fg = [random.random(), random.random(), random.random()]
-        self.bg = [0.9, 0.9, 0.9]
-        if data:
-            self.data = data
-        else:
-            self.data = []
-            for i in range(self.size):
-                self.data.append(random.random())
-    
-    def randomize(self):
-        for i in range(self.size):
-            self.data[i] = (random.random())
-
-    def draw(self, left, right, top, bottom, filled=True):
-        if filled:
-            # Draw the graph borders.
-            glColor3f(0.0, 0.0, 0.0)
-            glBegin(GL_LINES)
-            glVertex2f(left, top)
-            glVertex2f(right, top)
-            glVertex2f(left, bottom)
-            glVertex2f(right, bottom)
-            glEnd()
-
-        # Draw the graph data (first because OpenGL draws in reverse).
-        #glColor3f(1.0, 0.0, 0.0)
-        glColor3f(self.fg[0], self.fg[1], self.fg[2])
-        if filled:
-            glBegin(GL_TRIANGLE_STRIP)
-        else:
-            glLineWidth(2)
-            glBegin(GL_LINE_STRIP)
-        for count, point in enumerate(self.data):
-            curX = left + (float)(count) * (right - left) / (float)(len(self.data) - 1)
-            curY = bottom + point * (top - bottom)
-            glVertex2f(curX, curY)
-            if filled:
-                glVertex2f(curX, bottom)
-        glEnd()
-        if not filled:
-            glLineWidth(1)
-
-        if filled:
-            # Draw the graph background.
-            glColor3f(self.bg[0], self.bg[1], self.bg[2])
-            glBegin(GL_QUADS)
-            glVertex2f(left, top)
-            glVertex2f(left, bottom)
-            glVertex2f(right, bottom)
-            glVertex2f(right, top)
-            glEnd()
-
-        glColor3f(1.0, 1.0, 1.0)
-
-class MultiGraph():
-    def __init__(self, sets=None):
-        self.sets = sets
-        bgNum = random.random()
-        self.fg = [random.random(), random.random(), random.random()]
-        self.bg = [0.9, 0.9, 0.9]
-        if not self.sets:
-            self.sets = []
-
-    def addGraph(self, graph):
-        self.sets.append(graph)
-    
-    def randomize(self):
-        for graph in self.sets:
-            graph.randomize()
-
-    def draw(self, left, right, top, bottom):
-        # Draw the graph borders.
-        glColor3f(0.0, 0.0, 0.0)
-        glBegin(GL_LINES)
-        glVertex2f(left, top)
-        glVertex2f(right, top)
-        glVertex2f(left, bottom)
-        glVertex2f(right, bottom)
-        glEnd()
-
-        # Draw the graph data (first because OpenGL draws in reverse).
-        for graph in self.sets:
-            graph.draw(left, right, top, bottom, False)
-        
-        # Draw the graph background.
-        glColor3f(self.bg[0], self.bg[1], self.bg[2])
-        glBegin(GL_QUADS)
-        glVertex2f(left, top)
-        glVertex2f(left, bottom)
-        glVertex2f(right, bottom)
-        glVertex2f(right, top)
-        glEnd()
-
-        glColor3f(1.0, 1.0, 1.0)
-    
 class InfoPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
@@ -380,6 +267,11 @@ class VisFrame(wx.Frame):
 
         super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
 
+        #self.Bind(wx.EVT_SIZE, self.OnSize)
+
+        maxDim = min(size[0], size[1])
+        self.SetMinSize((400, 400))
+
         self.filter = filter
 
         # Create a panel and a notebook on the panel.
@@ -391,11 +283,35 @@ class VisFrame(wx.Frame):
         # Create the GLCanvas.
         self.canvas = CubeCanvas(visPage, app=app)
         self.canvas.InitGL()
+
+        # Add the static text to the panel.
+        text = "Select a node."
+        self.textPanel = wx.Panel(visPage)
+        
+        # Create the static text box.
+        self.textBox = wx.TextCtrl(self.textPanel, -1, text, size=(480,605), style=wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textBox.SetBackgroundColour("Red")
+
+        # Add the node selection combo box.
+        nodeList = ["--------"]
+        self.nodes = wx.ComboBox(self.textPanel, -1, choices=nodeList, style=wx.CB_READONLY)
+        self.nodes.SetSelection(0)
+
+        # Add and populate a spacer for the text panel and combobox.
+        textSizer = wx.FlexGridSizer(0, 1)
+        textSizer.Add(self.nodes, 1, wx.EXPAND)
+        textSizer.Add(self.textBox, 1, wx.EXPAND)
+        self.textPanel.SetSizer(textSizer)
+        self.nodes.Bind(wx.EVT_COMBOBOX, self.OnSelect)
+        self.nodeIndex = 0
+
         # Create the node info panel.
         nodePanel = InfoPanel(visPage)
+
         # Add a sizer to visPage to manage its children.
         visSizer = wx.BoxSizer()
         visSizer.Add(self.canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
+        visSizer.Add(self.textPanel, 1, wx.EXPAND | wx.ALIGN_RIGHT)
         visPage.SetSizer(visSizer)
 
         dataPage = InfoPanel(nb)
@@ -413,17 +329,33 @@ class VisFrame(wx.Frame):
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.timer.Start(freq)
-
-    def OnTimer(self, event):
-        self.update();
-        # TODO: Make this get stuff from filter.
+        
+    def updateNodes(self, nodeList, nodeData):
+        for node in nodeList:
+            self.nodes.Append(node)
+        self.nodeData = nodeData
+        #self.textBox.SetLabel(nodeData)
+        self.textBox.SetValue(nodeData)
+        #self.textBox.SetSize((200,200))
+        #self.textBox.Wrap(self.textBox.GetSize()[0])
+        #self.textBox.Wrap(200)
+        #print self.textBox.GetSize()[0]
 
     def update(self, graphs=None, updateNetwork=False):
         self.canvas.update(graphs, updateNetwork)
 
-    def update(self):
-        newGraphs, newImage = self.filter.update()
+    #def OnSize(self, event):
+        #self.SetTitle(str(event.GetSize()))
+        #event.Skip()
+
+    def OnSelect(self, event):
+        self.nodeIndex = event.GetSelection()
+
+    def OnTimer(self, event):
+        # Get graph data and whether to update graph image from filter.
+        newGraphs, nodeList, nodeDataList, newImage = self.filter.update(self.nodeIndex)
         self.canvas.update(newGraphs, newImage)
+        self.updateNodes(nodeList, nodeDataList)
 
     def OnCloseMe(self, event):
         self.Close(True)
@@ -431,33 +363,15 @@ class VisFrame(wx.Frame):
     def OnCloseWindow(self, event):
         self.Destroy()
 
-class TestFilter():
-    def __init__(self, length=4):
-        self.length = length
-        self.graphs = []
-        for i in range(length - 1):
-            self.graphs.append(Graph())
-        multi = MultiGraph()
-        for i in range(3):
-            multi.addGraph(Graph())
-        self.graphs.append(multi)
-
-    def update(self):
-        for g in self.graphs:
-            g.randomize()
-        if (random.random() > 0.9):
-            return self.graphs, True
-        else:
-            return self.graphs, False
-
 def makeRandomGraph(size=20):
     graph = []
     for i in range(size):
-        graph.append(Graph())
+        graph.append(visgraph.Graph())
     return graph
 
 app = wx.App(0)
-theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
-                    app=app, filter=TestFilter(), freq=200)
+#theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
+theFrame = VisFrame(None, -1, size=(970, 690), name="The Frame",
+                    app=app, filter=filter.TestFilter(), freq=200)
 theFrame.Show()
 app.MainLoop()
