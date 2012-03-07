@@ -19,12 +19,18 @@ class Graph():
             self.data = []
             for i in range(self.size):
                 self.data.append(0.0)
-        self.randomColor()
+        #self.fg = self.randomColor()
 
     def randomColor(self):
-        self.fg = [random.random(), random.random(), random.random()]
+        r = g = b = 3
+        while r + g + b > 2.5:
+            r = random.random()
+            g = random.random()
+            b = random.random()
+        #self.fg = [r, g, b]
         #bgVal = random.random() / 2.0
         #self.bg = [bgVal, bgVal, bgVal]
+        return [r, g, b]
     
     def randomize(self):
         for i in range(self.size):
@@ -76,12 +82,30 @@ class MultiGraph():
         self.sets = sets
         bgNum = random.random()
         self.fg = [random.random(), random.random(), random.random()]
-        self.bg = [0.9, 0.9, 0.9]
+        self.bg = [1.0, 1.0, 1.0]
         if not self.sets:
             self.sets = []
 
     def addGraph(self, graph):
         self.sets.append(graph)
+        self.makeRandomColors()
+
+    def makeRandomColors(self):
+        num = len(self.sets)
+        colorList = []
+        fixedIndex = random.randint(0, 2)
+        seed = [random.random(), random.random(), random.random()]
+        step = 1.0 / float(num)
+        for i in range(num):
+            colorList.append([0, 0, 0])
+            for j in range(3):
+                if j == fixedIndex:
+                    colorList[i][j] = 0.3
+                else:
+                    colorList[i][j] = (seed[j] + step * i) % 1.0
+        for i in range(num):
+            curRGB = colorList[i]
+            self.sets[i].fg = curRGB
     
     def randomize(self):
         for graph in self.sets:

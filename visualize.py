@@ -32,7 +32,7 @@ class MyCanvasBase(glcanvas.GLCanvas):
         # The size of the GLCanvas is set here. Since the canvas will resize to
         # fit the window, this actually just sets the aspect ratio of the
         # canvas.
-        glcanvas.GLCanvas.__init__(self, parent, -1, size=(100, 150))
+        glcanvas.GLCanvas.__init__(self, parent, -1, size=(400, 525))
         self.init = False
         # Record initial mouse position.
         self.lastx = self.x = 30
@@ -110,7 +110,7 @@ class CubeCanvas(MyCanvasBase):
 
         self.graphFile = "graph.png"
         
-        self.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
+        app.Bind(wx.EVT_KEY_DOWN, self.onKeyPress)
 
         self.graphs = makeRandomGraph(3)
 
@@ -192,7 +192,8 @@ class CubeCanvas(MyCanvasBase):
         self.setupTexture()
 
         # Draw the graphs.
-        self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
+        #self.drawGraphs(0.45, 0.0125, 0.0125, 0.0125)
+        self.drawGraphs(0.55, 0.0, 0.0, 0.0)
 
         self.SwapBuffers()
 
@@ -241,29 +242,17 @@ class CubeCanvas(MyCanvasBase):
 
     def onKeyPress(self, event):
         keycode = event.GetKeyCode()
+        """
         if keycode >= 0 and keycode <= 256:
             print "key pressed: %c" % (chr(keycode))
         else:
             print keycode
         if keycode == wx.WXK_SPACE:
             print "you pressed the spacebar!"
-        elif chr(keycode) == 'Q':
+        """
+        if chr(keycode) == 'Q':
             print "quitting"
             self.app.Exit()
-        elif chr(keycode) == 'W':
-            self.update()
-        elif chr(keycode) == 'E':
-            newGraphs = makeRandomGraph(3)
-            self.update(newGraphs)
-        elif chr(keycode) == 'R':
-            newGraphs = makeRandomGraph(3)
-            self.update(newGraphs, True)
-        elif chr(keycode) == 'T':
-            newGraphs = makeRandomGraph(4)
-            newGraphs[1] = None
-            self.update(newGraphs, True)
-        elif chr(keycode) == 'F':
-            self.update(updateNetwork=True)
         event.Skip()
 
 class InfoPanel(wx.Panel):
@@ -278,7 +267,7 @@ class VisFrame(wx.Frame):
 
         super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
 
-        self.Bind(wx.EVT_SIZE, self.OnSize)
+        #self.Bind(wx.EVT_SIZE, self.OnSize)
 
         maxDim = min(size[0], size[1])
         self.SetMinSize((400, 400))
@@ -296,10 +285,25 @@ class VisFrame(wx.Frame):
         self.canvas.InitGL()
 
         # Add the static text to the panel.
-        text = "I DROP IT BLAAARAEREROOOAAARRRGGHHHHH"
-        self.textBox = wx.TextCtrl(visPage, -1, text, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL)
-        #self.textBox = wx.TextCtrl(visPage, -1, text, style=wx.TE_MULTILINE | wx.TE_NO_VSCROLL | wx.BORDER_NONE)
-        self.textBox.SetBackgroundColour("#e8e8e8")
+        text = "Select a node."
+        self.textPanel = wx.Panel(visPage)
+        
+        # Create the static text box.
+        self.textBox = wx.TextCtrl(self.textPanel, -1, text, size=(480,605), style=wx.TE_READONLY | wx.TE_MULTILINE)
+        self.textBox.SetBackgroundColour("Red")
+
+        # Add the node selection combo box.
+        nodeList = ["--------"]
+        self.nodes = wx.ComboBox(self.textPanel, -1, choices=nodeList, style=wx.CB_READONLY)
+        self.nodes.SetSelection(0)
+
+        # Add and populate a spacer for the text panel and combobox.
+        textSizer = wx.FlexGridSizer(0, 1)
+        textSizer.Add(self.nodes, 1, wx.EXPAND)
+        textSizer.Add(self.textBox, 1, wx.EXPAND)
+        self.textPanel.SetSizer(textSizer)
+        self.nodes.Bind(wx.EVT_COMBOBOX, self.OnSelect)
+        self.nodeIndex = 0
 
         # Create the node info panel.
         nodePanel = InfoPanel(visPage)
@@ -307,7 +311,7 @@ class VisFrame(wx.Frame):
         # Add a sizer to visPage to manage its children.
         visSizer = wx.BoxSizer()
         visSizer.Add(self.canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
-        visSizer.Add(self.textBox, 1, wx.EXPAND | wx.ALIGN_RIGHT)
+        visSizer.Add(self.textPanel, 1, wx.EXPAND | wx.ALIGN_RIGHT)
         visPage.SetSizer(visSizer)
 
         dataPage = InfoPanel(nb)
@@ -326,17 +330,32 @@ class VisFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.OnTimer, self.timer)
         self.timer.Start(freq)
         
+    def updateNodes(self, nodeList, nodeData):
+        for node in nodeList:
+            self.nodes.Append(node)
+        self.nodeData = nodeData
+        #self.textBox.SetLabel(nodeData)
+        self.textBox.SetValue(nodeData)
+        #self.textBox.SetSize((200,200))
+        #self.textBox.Wrap(self.textBox.GetSize()[0])
+        #self.textBox.Wrap(200)
+        #print self.textBox.GetSize()[0]
+
     def update(self, graphs=None, updateNetwork=False):
         self.canvas.update(graphs, updateNetwork)
 
-    def OnSize(self, event):
-        #if (event.
-        event.Skip()
+    #def OnSize(self, event):
+        #self.SetTitle(str(event.GetSize()))
+        #event.Skip()
+
+    def OnSelect(self, event):
+        self.nodeIndex = event.GetSelection()
 
     def OnTimer(self, event):
         # Get graph data and whether to update graph image from filter.
-        newGraphs, newImage = self.filter.update()
+        newGraphs, nodeList, nodeDataList, newImage = self.filter.update(self.nodeIndex)
         self.canvas.update(newGraphs, newImage)
+        self.updateNodes(nodeList, nodeDataList)
 
     def OnCloseMe(self, event):
         self.Close(True)
@@ -351,7 +370,8 @@ def makeRandomGraph(size=20):
     return graph
 
 app = wx.App(0)
-theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
+#theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
+theFrame = VisFrame(None, -1, size=(970, 690), name="The Frame",
                     app=app, filter=filter.TestFilter(), freq=200)
 theFrame.Show()
 app.MainLoop()
