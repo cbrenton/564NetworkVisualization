@@ -80,7 +80,8 @@ def translateWellKnownPort(portNum):
    990 : "FTP control over TLS/SSL", 
    993 : "IMAP4 over TLS/SSL",
    995 : "POP3 over TLS/SSL"} 
-  
+ 
+  try: 
     protocolName = protocols[portNum]
   except KeyError:
     protocolName = str(portNum)
