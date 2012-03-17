@@ -1,49 +1,39 @@
-from select import select
-from socket import socket as sock, AF_INET, SOCK_DGRAM
-from struct import unpack
-
-DATA_READ = 4096
-
-# FILTER PKT FORMAT
-TYPE = 0
-
-# FILTER PKT CONSTANTS
-FULL_RECORD = 0
+import networkx as nx
+import matplotlib.pyplot as plt
 
 class Filter: 
-
-  def __init__(self, host="", port=6969):
-    self.listener = sock(AF_INET, SOCK_DGRAM, 0)
-    self.listener.bind((host, port))
-    
-  def getNetInfo():
-    buff = ""
-    while select([self.listener], [], [], POLL)[0]:
-      (collectorIP, data) = self.listener.recvfrom(DATA_READ)
-      buff += data
-    self.processNetInfo(buff)
-
-  def processNetInfo(data):
-    while data != "":
-      if unpack("!B", data[0])[0] == FULL_RECORD:
-        unpack("!LLLLL", data[1:])        
+   g = nx.Graph()
 
 
-    #numPkts = pktData[NUM_PKTS]
-    #L3Bytes = pktData[L3_BYTES]
-    #flowStart = pktData[START]
-    #flowEnd = pktData[END]
-    #srcPort = pktData[SRC_PORT]
-    #dstPort = pktData[DST_PORT]
-    #tcpFlags = pktData[TCP_FLAGS]
-    #ipProt = pktData[IP_PROT]
-    #tos = pktData[SRV_TYPE]
-    #srcAS = pktData[SRC_AS]
-    #dstAS = pktData[DST_AS]
-    #srcMask = pktData[SRC_MASK]
-    #dstMask = pktData[DST_MASK]  
- 
-     
+   def __init__(self, host="", port=6969):
+      self.host = host
+      self.port = port
+      
+   def addFlowToGraph(routerSrc, dst, nextHop):
+      if nextHop == "0.0.0.0":
+         flowGraph.add_edge(routerSrc, dst)
+      else:
+         flowGraph.add_edge(routerSrc, nextHop)
+      
+   def updateNetworkGraph():
+      pos=nx.spring_layout(flowGraph)
+      nx.draw(flowGraph, pos, fontsize=10)
+      plt.axis('off')
+      plt.savefig("graph.png")
+  
+
+   def updateMetrics(self, unique, record): 
+      #Check if the flow record is already in the dictionary
+      if unique in self.data:
+         flowRecord = self.data[unique]
+         # Check if start times are the same
+         if flowRecord[START] == record[START]:
+            self.data[unique][L3_BYTES] += record[L3_BYTES]
+            self.data[unique][END] = record[END]
             
-            
+         
+
+
+
+
 
