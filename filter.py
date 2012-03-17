@@ -1,6 +1,10 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 from socket import socket as sock, AF_INET, SOCK_DGRAM 
+from select import select
+
+POLL = 0
+READ_SIZE = 4096
 
 class Filter: 
 
@@ -16,7 +20,10 @@ class Filter:
       self.avgByteGraph = []
       self.avgLenGraph = []
       self.numFlowsGraph = []
-          
+      self.buffer = ""
+      self.lastTwentyRecords = []
+      self.lastTwentyHeaders = []
+                
    def updateNetworkGraph(self):
       pos=nx.spring_layout(self.flowGraph)
       nx.draw(self.flowGraph, pos, fontsize=10)
@@ -30,7 +37,8 @@ class Filter:
          self.flowGraph.add_edge(routerSrc, nextHop)
 
    def getAvgBytes(self):
-   
+      
+      
    def getAvgFlowLength(self):
       
    
@@ -41,12 +49,15 @@ class Filter:
       return [ self.getAvgBytes(), self.getAvgFlowLength(), self.getNumOfFlows() ]
 
    def update(self, nodeIndex):
+      while select([self.listener], [], [], POLL)[0]:
+         self.buffer += self.listener.recv(READ_SIZE)
+      
+      while self.buffer != "":
+        self.buffer[:HDR_LEN]         
+         
+         
       return [ self.generateGraphs(), self.getNewNodes(), self.nodeData[nodeIndex] ]
-  
-  
-   def start(self); 
-      while True: 
-            
+       
    def updateMetrics(self, unique, record): 
     #Check if the flow record is already in the dictionary
       if unique in self.data:
@@ -57,4 +68,5 @@ class Filter:
             self.data[unique][END] = record[END]
       else: 
          self.data[unique] = record      
+     
      

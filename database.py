@@ -1,8 +1,13 @@
+from socket import socket as sock, AF_INET, SOCK_DGRAM
 
 class Database:
-  def __init__(self, fwdAddr=None):
+  def __init__(self, fwdAddr="127.0.0.1". fwdPort=6969, filters=[]):
     self.data = {"R": {}, "H":{}}
     self.numHdrs = 0
+    self.sender = sock
+    self.filterAddr = fwdAddr
+    self.filterPort = fwdPort
+    self.filters = filters
   
   def insert(self, table, key=None, data):
     if table == "H":
@@ -14,7 +19,13 @@ class Database:
       except KeyError:
         self.data[table][key] = RecordInfo(data)
         pktInfo = RecordInfo(data)
-      # Send packet data
+    # Send packet data
+
+  def fwdData(self, data):
+    for f in filters:
+      data = f.apply(data)
+        
+     
 
   def get(self, table, key):
     if table == "H":
