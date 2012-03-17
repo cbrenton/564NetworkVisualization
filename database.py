@@ -1,11 +1,8 @@
-<<<<<<< HEAD
 from socket import socket as sock, AF_INET, SOCK_DGRAM
-=======
 import time
->>>>>>> 375b9190bf31a70703ab98abc76e182efe9c32bc
 
 class Database:
-  def __init__(self, fwdAddr="127.0.0.1". fwdPort=6969, filters=[]):
+  def __init__(self, fwdAddr="127.0.0.1", fwdPort=6969, filters=[]):
     self.data = {"R": {}, "H":{}}
     self.numHdrs = 0
     self.sender = sock
