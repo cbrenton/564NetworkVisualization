@@ -9,17 +9,21 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 class Graph():
-    def __init__(self, size=20, data=None):
+    def __init__(self, size=20, yMin=0.0, yMax=1.0, yStep=0.2, data=None):
         self.size = size
-        self.fg = [0.2, 0.4, 0.4]
+        self.yMin = yMin
+        self.yMax = yMax
+        self.yRange = self.yMax - self.yMin
+        self.yStep = yStep
+        #self.fg = [0.2, 0.4, 0.4]
+        self.randomColor()
         self.bg = [1.0, 1.0, 1.0]
         if data:
             self.data = data
         else:
             self.data = []
             for i in range(self.size):
-                self.data.append(0.0)
-        #self.fg = self.randomColor()
+                self.data.append(self.yMin)
 
     def randomColor(self):
         r = g = b = 3
@@ -27,14 +31,18 @@ class Graph():
             r = random.random()
             g = random.random()
             b = random.random()
-        #self.fg = [r, g, b]
-        #bgVal = random.random() / 2.0
-        #self.bg = [bgVal, bgVal, bgVal]
-        return [r, g, b]
+        self.fg = [r, g, b]
     
-    def randomize(self):
+    def updateData(self):
+        # How much variation can be introduced per step. Must be a float between
+        # 0.0 and 1.0, where 0.0 is "no change", and 1.0 is "up to 100% of the y
+        # range".
+        scaleFactor = 0.25
         for i in range(self.size):
-            self.data[i] = (random.random())
+            randInRange = random.random() * self.yRange + self.yMin
+            self.data[i] += randInRange * scaleFactor - (self.yRange *
+                                                         scaleFactor / 2)
+            self.data[i] = min(self.yMax, max(self.yMin, self.data[i]))
 
     def draw(self, left, right, top, bottom, filled=True):
         if filled:
@@ -47,8 +55,6 @@ class Graph():
             glVertex2f(right, bottom)
             glEnd()
 
-        # Draw the graph data (first because OpenGL draws in reverse).
-        #glColor3f(1.0, 0.0, 0.0)
         glColor3f(self.fg[0], self.fg[1], self.fg[2])
         if filled:
             glBegin(GL_TRIANGLE_STRIP)
@@ -77,6 +83,35 @@ class Graph():
 
         glColor3f(1.0, 1.0, 1.0)
 
+class TimeGraph(Graph):
+    def __init__(self, size=20, yMin=0.0, yMax=1.0, yStep=0.2, data=None):
+        Graph.__init__(self, size, yMin, yMax, yStep, data)
+
+    def updateData(self):
+        scaleFactor = 0.25
+        self.data.pop(0)
+        randInRange = random.random() * self.yRange + self.yMin
+        self.data.append(self.data[-1] + randInRange * scaleFactor -
+                         (self.yRange * scaleFactor / 2))
+        self.data[-1] = min(self.yMax, max(self.yMin, self.data[-1]))
+
+class StepGraph(Graph):
+    def __init__(self, size=20, yMin=0.0, yMax=1.0, yStep=0.2, data=None):
+        Graph.__init__(self, size, yMin, yMax, yStep, data)
+        self.numSteps=30
+        self.updateCount = 0
+
+    def updateData(self):
+        self.updateCount = (self.updateCount + 1) % 3
+        self.data.pop(0)
+        if self.updateCount == 0:
+            dStep = float(random.randint(0, self.numSteps / 2)) - \
+                    float(self.numSteps) / 4
+            self.data.append(self.data[-1] + 1.0 / dStep)
+            self.data[-1] = min(1.0, max(0.0, self.data[-1]))
+        else:
+            self.data.append(self.data[-1])
+
 class MultiGraph():
     def __init__(self, sets=None):
         self.sets = sets
@@ -92,6 +127,10 @@ class MultiGraph():
 
     def makeRandomColors(self):
         num = len(self.sets)
+        if num > 10:
+            for i in range(num):
+                self.sets[i].fg = [random.random(), random.random(), random.random()]
+            return
         colorList = []
         fixedIndex = random.randint(0, 2)
         seed = [random.random(), random.random(), random.random()]
@@ -107,9 +146,9 @@ class MultiGraph():
             curRGB = colorList[i]
             self.sets[i].fg = curRGB
     
-    def randomize(self):
+    def updateData(self):
         for graph in self.sets:
-            graph.randomize()
+            graph.updateData()
 
     def draw(self, left, right, top, bottom):
         # Draw the graph borders.
