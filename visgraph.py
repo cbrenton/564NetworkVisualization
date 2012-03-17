@@ -15,7 +15,8 @@ class Graph():
         self.yMax = yMax
         self.yRange = self.yMax - self.yMin
         self.yStep = yStep
-        self.fg = [0.2, 0.4, 0.4]
+        #self.fg = [0.2, 0.4, 0.4]
+        self.randomColor()
         self.bg = [1.0, 1.0, 1.0]
         if data:
             self.data = data
@@ -54,29 +55,6 @@ class Graph():
             glVertex2f(right, bottom)
             glEnd()
 
-        # This is where the y-axis is drawn and the graph data's right side
-        # ends.
-        dataRight = right - (right - left) * 0.05
-
-        # Draw the graph's y-axis.
-        glColor3f(0.0, 0.0, 0.0)
-        glBegin(GL_LINES)
-        glVertex2f(dataRight, top)
-        glVertex2f(dataRight, bottom)
-        yCount = self.yMin
-        hashRight = right - (right - dataRight) * 0.5
-        #yInc = self.yStep / self.yRange
-        """
-        while yCount <= self.yMax:
-            glVertex2f(dataRight, bottom + yCount * self.yRange)
-            glVertex2f(hashRight, bottom + yCount * self.yRange)
-            print "hash at %f" % (yCount
-            yCount += self.yStep
-                                  """
-        glEnd()
-
-        # Draw the graph data (first because OpenGL draws in reverse).
-        #glColor3f(1.0, 0.0, 0.0)
         glColor3f(self.fg[0], self.fg[1], self.fg[2])
         if filled:
             glBegin(GL_TRIANGLE_STRIP)
@@ -84,7 +62,7 @@ class Graph():
             glLineWidth(2)
             glBegin(GL_LINE_STRIP)
         for count, point in enumerate(self.data):
-            curX = left + (float)(count) * (dataRight - left) / (float)(len(self.data) - 1)
+            curX = left + (float)(count) * (right - left) / (float)(len(self.data) - 1)
             curY = bottom + point * (top - bottom)
             glVertex2f(curX, curY)
             if filled:
