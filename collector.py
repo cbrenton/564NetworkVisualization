@@ -5,7 +5,7 @@ from struct import unpack
 from database import Database
 from nfutil import *
 import time
-
+import math
 
 # Configuration Parameters 
 DATA_READ = 1024
@@ -56,7 +56,7 @@ class Collector:
     self.database = db
     self.logIt = logIt
     self.playback = playback
-    self.pktLogBin = open("../exports/" + math.ceil(time()) + ".ngl", "wb")
+    self.pktLogBin = open("./exports/" + str(math.ceil(time.time())) + ".ngl", "wb")
   
   # "Main" Method to collect and store data
   def collectNetFlowPackets(self):

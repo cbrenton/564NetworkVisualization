@@ -5,7 +5,7 @@ class Database:
     self.data = {"R": {}, "H":{}}
     self.numHdrs = 0
   
-  def insert(self, table, key=None, data):
+  def insert(self, table, key=None, data=None):
     if table == "H":
       self.data[table][self.numHdrs] = HeaderInfo(data)
       self.numHdrs += 1
@@ -42,8 +42,8 @@ class Database:
       f.write(hours + " hours ")
       f.write(minutes + " minutes ")
       f.write(seconds + " seconds\n")
-      f.write("System Time: " +\
-       time.ctime(h.epocMS / 1000 + h.epocNs / 1000000000 + '\n')
+      f.write("System Time: " + \
+       	time.ctime(h.epocMS / 1000 + h.epocNs / 1000000000 + '\n'))
       f.write("Total Number of Flows: " + h.totalFlows + '\n')
       f.write("Sampling Interval : " + h.samplingInterval + '\n')
       
@@ -92,7 +92,7 @@ class Database:
       f.write("\nDestination Autonomous System Number: "+str(dstAS))
       f.write("\nSource Netmask: /"+str(srcMask))
       f.write("\nDestination Netmask: /"+str(dstMask))  
-  f.close()
+    f.close()
        
 
 
