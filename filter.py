@@ -5,42 +5,11 @@ from select import select
 
 POLL = 0
 READ_SIZE = 4096
+HDR_LEN = 24 
+REC_LEN = 52
+NUM_FLOWS = 1
 
 class Filter: 
-   g = nx.Graph()
-
-
-   def __init__(self, host="", port=6969):
-      self.host = host
-      self.port = port
-      
-   def addFlowToGraph(routerSrc, dst, nextHop):
-      if nextHop == "0.0.0.0":
-         flowGraph.add_edge(routerSrc, dst)
-      else:
-         flowGraph.add_edge(routerSrc, nextHop)
-      
-   def updateNetworkGraph():
-      pos=nx.spring_layout(flowGraph)
-      nx.draw(flowGraph, pos, fontsize=10)
-      plt.axis('off')
-      plt.savefig("graph.png")
-  
-
-   def updateMetrics(self, unique, record): 
-      #Check if the flow record is already in the dictionary
-      if unique in self.data:
-         flowRecord = self.data[unique]
-         # Check if start times are the same
-         if flowRecord[START] == record[START]:
-            self.data[unique][L3_BYTES] += record[L3_BYTES]
-            self.data[unique][END] = record[END]
-            
-         
-
-
-
-
    def __init__(self, host="", port=6969):
       self.host = host
       self.port = port
@@ -82,12 +51,24 @@ class Filter:
       return [ self.getAvgBytes(), self.getAvgFlowLength(), self.getNumOfFlows() ]
 
    def update(self, nodeIndex):
+     
       while select([self.listener], [], [], POLL)[0]:
          self.buffer += self.listener.recv(READ_SIZE)
       
       while self.buffer != "":
-        self.buffer[:HDR_LEN]         
+         hdrPayload = list(unpack("!HHLLLLBBH", self.buffer[:HDR_LEN])) 
+         self.lastTwentyHeaders.append(hdrPayload)
+         if len(self.lastTwentyHeaders) > 20:
+            self.lastTwentyHeaders = self.lastTwentyHeaders[-20:]
          
+         for idx in range(hdrPayload[NUM_FLOWS]):
+            start = HDR_LEN + (idx * REC_LEN)
+            end = start + REC_LEN
+            recPayload = list(unpack("!LLLHHLLLLHHBBBBHHBBHL", self.buffer[start:end]))
+            self.updateMetrics(getKey(recPayload), recPayload)
+            self.lastTwentyRecords.append(recPayload)
+            if len(self.lastTwentyRecords) > 20:
+               self.lastTwentyRecords = self.lastTwentyRecords[-20:]          
          
       return [ self.generateGraphs(), self.getNewNodes(), self.nodeData[nodeIndex] ]
        
