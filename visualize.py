@@ -76,7 +76,7 @@ class MyCanvasBase(glcanvas.GLCanvas):
         self.ReleaseMouse()
         x = evt.GetX()
         y = evt.GetY()
-        print "left click at %d, %d" % (x, y)
+        #print "left click at %d, %d" % (x, y)
 
     def OnMouseMotion(self, evt):
         if evt.Dragging() and evt.LeftIsDown():
@@ -250,15 +250,31 @@ class CubeCanvas(MyCanvasBase):
         if keycode == wx.WXK_SPACE:
             print "you pressed the spacebar!"
         """
-        if chr(keycode) == 'Q':
-            print "quitting"
-            self.app.Exit()
+        if keycode >= 0 and keycode <= 256:
+            if chr(keycode) == 'Q':
+                print "quitting"
+                self.app.Exit()
         event.Skip()
 
-class InfoPanel(wx.Panel):
-    def __init__(self, parent):
-        wx.Panel.__init__(self, parent)
-        t = wx.StaticText(self, -1, "This is an InfoPanel object", (40,40))
+class InfoPanel(wx.ScrolledWindow):
+    def __init__(self, parent, filter):
+        wx.ScrolledWindow.__init__(self, parent)
+        self.t = wx.TextCtrl(self, -1, "This is an InfoPanel object.", size=(100,700), style=wx.TE_MULTILINE | wx.TE_READONLY)
+        self.refresh = wx.Button(self, 1, "Refresh", (850,0))
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+        sizer.Add(self.t, wx.ALL | wx.EXPAND)
+        sizer.Add(self.refresh)
+
+        self.SetSizer(sizer)
+        
+        self.filter = filter
+
+        self.Bind(wx.EVT_BUTTON, self.updateInfo, id=1)
+
+    def updateInfo(self, newInfo):
+        newRawData = self.filter.updateRaw()
+        self.t.SetValue(newRawData)
 
 class VisFrame(wx.Frame):
     def __init__(self, parent, id, title='theframe', pos=wx.DefaultPosition,
@@ -266,8 +282,6 @@ class VisFrame(wx.Frame):
                  name='Netflow Visualization', app=None, filter=None, freq=500):
 
         super(VisFrame, self).__init__(parent, id, title, pos, size, style, name)
-
-        #self.Bind(wx.EVT_SIZE, self.OnSize)
 
         maxDim = min(size[0], size[1])
         self.SetMinSize((400, 400))
@@ -290,10 +304,9 @@ class VisFrame(wx.Frame):
         
         # Create the static text box.
         self.textBox = wx.TextCtrl(self.textPanel, -1, text, size=(480,605), style=wx.TE_READONLY | wx.TE_MULTILINE)
-        self.textBox.SetBackgroundColour("Red")
 
         # Add the node selection combo box.
-        nodeList = ["--------"]
+        nodeList = ["---"]
         self.nodes = wx.ComboBox(self.textPanel, -1, choices=nodeList, style=wx.CB_READONLY)
         self.nodes.SetSelection(0)
 
@@ -305,20 +318,18 @@ class VisFrame(wx.Frame):
         self.nodes.Bind(wx.EVT_COMBOBOX, self.OnSelect)
         self.nodeIndex = 0
 
-        # Create the node info panel.
-        nodePanel = InfoPanel(visPage)
-
         # Add a sizer to visPage to manage its children.
         visSizer = wx.BoxSizer()
         visSizer.Add(self.canvas, 1, wx.SHAPED | wx.ALIGN_LEFT)
         visSizer.Add(self.textPanel, 1, wx.EXPAND | wx.ALIGN_RIGHT)
         visPage.SetSizer(visSizer)
 
-        dataPage = InfoPanel(nb)
+        # Create the raw data panel.
+        self.dataPage = InfoPanel(nb, self.filter)
 
         # Add the pages to the notebook with the label to show on the tab
         nb.AddPage(visPage, "Visualization")
-        nb.AddPage(dataPage, "Data")
+        nb.AddPage(self.dataPage, "Data")
 
         # Put the notebook in a sizer for the panel to manage the layout
         mainSizer = wx.BoxSizer()
@@ -334,27 +345,18 @@ class VisFrame(wx.Frame):
         for node in nodeList:
             self.nodes.Append(node)
         self.nodeData = nodeData
-        #self.textBox.SetLabel(nodeData)
         self.textBox.SetValue(nodeData)
-        #self.textBox.SetSize((200,200))
-        #self.textBox.Wrap(self.textBox.GetSize()[0])
-        #self.textBox.Wrap(200)
-        #print self.textBox.GetSize()[0]
 
     def update(self, graphs=None, updateNetwork=False):
         self.canvas.update(graphs, updateNetwork)
-
-    #def OnSize(self, event):
-        #self.SetTitle(str(event.GetSize()))
-        #event.Skip()
 
     def OnSelect(self, event):
         self.nodeIndex = event.GetSelection()
 
     def OnTimer(self, event):
         # Get graph data and whether to update graph image from filter.
-        newGraphs, nodeList, nodeDataList, newImage = self.filter.update(self.nodeIndex)
-        self.canvas.update(newGraphs, newImage)
+        newGraphs, nodeList, nodeDataList = self.filter.update(self.nodeIndex)
+        self.canvas.update(newGraphs, nodeList != None)
         self.updateNodes(nodeList, nodeDataList)
 
     def OnCloseMe(self, event):
@@ -370,7 +372,6 @@ def makeRandomGraph(size=20):
     return graph
 
 app = wx.App(0)
-#theFrame = VisFrame(None, -1, size=(600,600), name="The Frame",
 theFrame = VisFrame(None, -1, size=(970, 690), name="The Frame",
                     app=app, filter=testfilter.TestFilter(), freq=200)
 theFrame.Show()
