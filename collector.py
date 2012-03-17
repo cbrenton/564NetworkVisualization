@@ -147,7 +147,7 @@ class Collector:
 
 if __name__ == "__main__":
   flowCollector = Collector()
-  data = Database()
+  #data = Database()
   #try: 
   while True:
     flowCollector.collectNetFlowPackets()
