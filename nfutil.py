@@ -81,13 +81,66 @@ def translateWellKnownPort(portNum):
    993 : "IMAP4 over TLS/SSL",
    995 : "POP3 over TLS/SSL"} 
   
-  try: 
     protocolName = protocols[portNum]
   except KeyError:
     protocolName = str(portNum)
   
   return protocolName
 
+# DEBUG (DUMP HEADER)
+def dumpHeader(pktData):
+  print "==== NetFlow Header Dump ===="
+  print "NetFlow Version: "+str(pktData[VERSION])
+  print "Number of Flows in this Export: "+str(pktData[NUM_FLOWS])
+  print "System Uptime in Milliseconds: "+str(pktData[UPTIME])
+  print "Time since Epoch in Milliseconds: "+str(pktData[EPOCH_MS])
+  print "Residual Nanoseconds from Above: "+str(pktData[EPOCH_NS])
+  print "Total Number of Flows Since Boot: "+str(pktData[TOTAL_FLOWS])
+  print "Engine Type: "+str(pktData[ENGINE_TYPE])
+  print "Engine ID: "+str(pktData[ENGINE_ID])
+  print "Sampling Interval: "+str(pktData[SAMPLE_RATE])
+  
+# DEBUG (DUMP RECORD)
+def dumpRecord(pktData):
+  srcIP = formatIP(pktData[SRC_IP])
+  dstIP = formatIP(pktData[DST_IP])
+  nextHop = formatIP(pktData[HOP_IP])
+  snmpIn = pktData[IF_IN]
+  snmpOut = pktData[IF_OUT]
+  numPkts = pktData[NUM_PKTS]
+  L3Bytes = pktData[L3_BYTES]
+  flowStart = pktData[START]
+  flowEnd = pktData[END]
+  srcPort = pktData[SRC_PORT]
+  dstPort = pktData[DST_PORT]
+  tcpFlags = pktData[TCP_FLAGS]
+  ipProt = pktData[IP_PROT]
+  tos = pktData[SRV_TYPE]
+  srcAS = pktData[SRC_AS]
+  dstAS = pktData[DST_AS]
+  srcMask = pktData[SRC_MASK]
+  dstMask = pktData[DST_MASK]
+
+  print "==== NetFlow Record Dump ===="
+  print "Source: "+srcIP
+  print "Destination: "+dstIP
+  print "Next Hop: "+nextHop
+  print "SNMP Input Interface: "+str(snmpIn)
+  print "SNMP Output Interface: "+str(snmpOut)
+  print "Number of Packets in Flow: "+str(numPkts)
+  print "Total Layer 3 Bytes in Flow: "+str(L3Bytes)
+  print "Flow started at system boot +"+str(flowStart/1000)+" seconds"
+  print "Flow last observed at system boot +"+str(flowEnd/1000)+" seconds"
+  print "Flow has been alive for "+str((flowEnd/1000)-(flowStart/1000))+" seconds"
+  print "UDP/TCP Source Port: "+translateWellKnownPort(srcPort)
+  print "UDP/TCP Destination Port: "+translateWellKnownPort(dstPort)
+  print "Cumulative TCP Flags: "+expandTCPFlags(tcpFlags)
+  print "IP Protocol Type: "+getIPType(ipProt)
+  print "Type of Service: "+str(tos)
+  print "Source Autonomous System Number: "+str(srcAS)
+  print "Destination Autonomous System Number: "+str(dstAS)
+  print "Source Netmask: /"+str(srcMask)
+  print "Destination Netmask: /"+str(dstMask)   
 
 def formatIP(ipAddr):
   oct1 = (ipAddr & 0xFF000000) >> 24
@@ -96,3 +149,59 @@ def formatIP(ipAddr):
   oct4 = (ipAddr & 0x000000FF)
   return str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(oct4)
 
+# DEBUG (DUMP HEADER)
+def dumpHeader(pktData):
+  print "==== NetFlow Header Dump ===="
+  print "NetFlow Version: "+str(pktData[VERSION])
+  print "Number of Flows in this Export: "+str(pktData[NUM_FLOWS])
+  print "System Uptime in Milliseconds: "+str(pktData[UPTIME])
+  print "Time since Epoch in Milliseconds: "+str(pktData[EPOCH_MS])
+  print "Residual Nanoseconds from Above: "+str(pktData[EPOCH_NS])
+  print "Total Number of Flows Since Boot: "+str(pktData[TOTAL_FLOWS])
+  print "Engine Type: "+str(pktData[ENGINE_TYPE])
+  print "Engine ID: "+str(pktData[ENGINE_ID])
+  print "Sampling Interval: "+str(pktData[SAMPLE_RATE])
+
+# DEBUG (DUMP RECORD)
+def dumpRecord(pktData):
+  srcIP = formatIP(pktData[SRC_IP])
+  dstIP = formatIP(pktData[DST_IP])
+  nextHop = formatIP(pktData[HOP_IP])
+  snmpIn = pktData[IF_IN]
+  snmpOut = pktData[IF_OUT]
+  numPkts = pktData[NUM_PKTS]
+  L3Bytes = pktData[L3_BYTES]
+  flowStart = pktData[START]
+  flowEnd = pktData[END]
+  srcPort = pktData[SRC_PORT]
+  dstPort = pktData[DST_PORT]
+  tcpFlags = pktData[TCP_FLAGS]
+  ipProt = pktData[IP_PROT]
+  tos = pktData[SRV_TYPE]
+  srcAS = pktData[SRC_AS]
+  dstAS = pktData[DST_AS]
+  srcMask = pktData[SRC_MASK]
+  dstMask = pktData[DST_MASK]
+
+  print "==== NetFlow Record Dump ===="
+  print "Source: "+srcIP
+  print "Destination: "+dstIP
+  print "Next Hop: "+nextHop
+  print "SNMP Input Interface: "+str(snmpIn)
+  print "SNMP Output Interface: "+str(snmpOut)
+  print "Number of Packets in Flow: "+str(numPkts)
+  print "Total Layer 3 Bytes in Flow: "+str(L3Bytes)
+  print "Flow started at system boot +"+str(flowStart/1000)+" seconds"
+  print "Flow last observed at system boot +"+str(flowEnd/1000)+" seconds"
+  print "Flow has been alive for "+str((flowEnd/1000)-(flowStart/1000))+" seconds"
+  print "UDP/TCP Source Port: "+translateWellKnownPort(srcPort)
+  print "UDP/TCP Destination Port: "+translateWellKnownPort(dstPort)
+  print "Cumulative TCP Flags: "+expandTCPFlags(tcpFlags)
+  print "IP Protocol Type: "+getIPType(ipProt)
+  print "Type of Service: "+str(tos)
+  print "Source Autonomous System Number: "+str(srcAS)
+  print "Destination Autonomous System Number: "+str(dstAS)
+  print "Source Netmask: /"+str(srcMask)
+  print "Destination Netmask: /"+str(dstMask)   
+
+ 
