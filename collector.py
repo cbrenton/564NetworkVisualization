@@ -125,15 +125,15 @@ class Collector:
   # @param pktData packet data as a string 
   def parseNetFlowHeader(self, pktData):
     pktPayload = list(unpack("!HHLLLLBBH", pktData))
-    self.dumpHeader(pktPayload)
+    nfutil.dumpHeader(pktPayload)
     self.storeHeader(pktPayload, time.time())
     return pktPayload
-
+ 
   # Record format: 
   # http://netflow.caligare.com/netflow_v5.htm
   def parseNetFlowRecord(self, pktData):
     pktPayload = list(unpack("!LLLHHLLLLHHBBBBHHBBH", pktData))
-    self.dumpRecord(pktPayload) 
+    nfutil.dumpRecord(pktPayload) 
     self.storeRecord(pktPayload[:2], pktPayload[2:])
     return pktPayload
 
