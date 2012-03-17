@@ -6,6 +6,7 @@ from database import Database
 from nfutil import *
 import time
 
+
 # Configuration Parameters 
 DATA_READ = 1024
 POLL = 0
@@ -44,17 +45,25 @@ SRC_MASK = 17
 DST_MASK = 18
 
 class Collector:
-  def __init__(self, db=Database(), host="", port=9996):
+  def __init__(self, db=Database(), host="", port=9996,\
+   dstHost="", dstPort=6969, playback=False, logIt=True):
     self.listener = sock(AF_INET, SOCK_DGRAM, 0)
     self.listener.bind((host, port))
+    self.sender = sock(AF_INET, SOCK_DGRAM, 0)
+    self.dstHost = dstHost
+    self.dstPort = dstPort
     self.buffer = ""
     self.database = db
-    self.pktLogBin = open("netflowlogBin.txt", "wb")
-    self.pktLog = open("netflowlog.txt", "w")
+    self.logIt = logIt
+    self.playback = playback
+    self.pktLogBin = open("../exports/" + math.ceil(time()) + ".ngl", "wb")
   
   # "Main" Method to collect and store data
   def collectNetFlowPackets(self):
-    if self.getData():
+    if self.playback:
+       print "Playing Back From Logs!"
+       self.playBack()
+    elif self.getData():
       print "Flow Received!"
       self.parseNetFlowPackets() 
    
@@ -62,15 +71,36 @@ class Collector:
   def cleanup(self):
     self.listener.close()
  
+
+  def playBack(self):
+    path = os.path.abspath("exports")
+    logsPathTuple = os.walk(path)
+    for logfile in logsPathTuple[2]:
+       if logfile[-4:] == ".ngl":
+          inFile = open("../exports/" + logfile, "rb")
+          self.buffer = inFile.read()
+          while len(buffer) != 0 :
+            numberOfFlows = int(self.buffer[4:7])
+            endIndex = 24 + 52 * numberOfFlows
+            self.sender.sendto(buffer[:endIndex], (dstHost, dstPort))
+            buffer = buffer[endIndex:]
+          inFile.close()
+       
+
   # Check for data and gather it
   def getData(self):
     while select([self.listener], [], [], POLL)[0]:
-      data = self.listener.recv(DATA_READ) 
+      recvReturn = self.listener.recvfrom(DATA_READ) 
+      data = recvReturn[0]
+      data = data + pack("!L", recvReturn[1])
+      # Pass the NetFlow Record + RouterIP to the filter
+      self.sender.sendto(data, (self.dstHost, self.dstPort))
       self.buffer += data
       print "Received: \n"+repr(data)+"\nSize: "+str(len(data))
-      self.pktLog.write(repr(data))
-      self.pktLogBin.write(data)
-     return self.buffer != ""
+      if self.logIt:
+         slf.pktLogBin.write(sys.getsizeof(data))
+         self.pktLogBin.write(data)
+    return self.buffer != ""
 
   # Parse the NetFlow V5 header and any associated flows
   def parseNetFlowPackets(self):
@@ -81,6 +111,7 @@ class Collector:
       self.parseNetFlowRecord(self.buffer[idx:idx+DATA_LEN])
       numFlows -= 1
       idx += DATA_LEN
+    
     self.buffer = self.buffer[:HDR_LEN+(numFlows * DATA_LEN)]
 
   # Header Format (24 bytes)

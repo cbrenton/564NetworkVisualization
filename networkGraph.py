@@ -14,15 +14,31 @@ def addFlowToGraph(routerSrc, dst, nextHop):
       
 def updateNetworkGraph():
    pos=nx.spring_layout(flowGraph)
-   nx.draw(flowGraph, pos)
-   #plt.axis('off')
+   nx.draw(flowGraph, pos, fontsize=10)
+   plt.axis('off')
    plt.savefig("graph.png")
       
-addFlowToGraph("3.3.3.3", "1.1.1.1", "5.5.5.5")  
-addFlowToGraph("1.1.1.1", "2.2.2.2", "3.3.3.3")
-addFlowToGraph("3.3.3.3", "1.1.1.1", "4.4.4.4")
-addFlowToGraph("3.3.3.3", "5.5.5.5", "0.0.0.0")
-addFlowToGraph("1.1.1.1", "7.7.7.7", "0.0.0.0")
-addFlowToGraph("1.1.1.1", "6.6.6.6", "0.0.0.0")
+addFlowToGraph("10.4.11.1", "10.4.11.100", "0.0.0.0")
+addFlowToGraph("10.4.11.1", "10.4.11.101", "0.0.0.0")
+addFlowToGraph("10.4.11.1", "Collector", "0.0.0.0")
+
+addFlowToGraph("10.4.11.2", "10.4.11.200", "0.0.0.0")
+addFlowToGraph("10.4.11.2", "10.4.11.202", "0.0.0.0")
+addFlowToGraph("10.4.11.2", "Collector", "0.0.0.0")
+
+addFlowToGraph("10.4.11.3", "10.4.11.50", "0.0.0.0")
+addFlowToGraph("10.4.11.3", "10.4.11.51", "0.0.0.0")
+addFlowToGraph("10.4.11.3", "Collector", "0.0.0.0")
+
+addFlowToGraph("10.4.11.4", "10.4.11.150", "0.0.0.0")
+addFlowToGraph("10.4.11.4", "10.4.11.151", "0.0.0.0")
+addFlowToGraph("10.4.11.4", "Collector", "0.0.0.0")
+
+addFlowToGraph("10.4.11.2", "10.4.11.4", "10.4.11.4")
+addFlowToGraph("10.4.11.4", "10.4.11.3", "10.4.11.3")
+addFlowToGraph("10.4.11.3", "10.4.11.1", "10.4.11.1")
+addFlowToGraph("10.4.11.1", "10.4.11.2", "10.4.11.2")
+
+
 updateNetworkGraph()      
       
